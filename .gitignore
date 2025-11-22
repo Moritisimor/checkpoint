@@ -1,0 +1,7 @@
+# IDE-Specific Folders
+.vscode
+.idea
+
+# Scripts/Binaries
+target
+scripts
