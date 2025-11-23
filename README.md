@@ -15,3 +15,6 @@ This project is still highly WIP, and as such, not many features are implemented
 - CORS
 - Header Injection
 - Logging
+
+# What features are there already?
+Currently, not all that much. There is an example config.json as a demonstration of what the finished product's config JSON might look like, but virtually all other features are yet to be implemented.
