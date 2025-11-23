@@ -1,5 +1,5 @@
 mod models;
-use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use crate::models::{Config, GenericResponse};
 
 #[actix_web::get("/status")]
@@ -9,8 +9,31 @@ async fn ping() -> impl Responder {
     })
 }
 
-async fn route() -> impl Responder {
-    HttpResponse::Ok()
+async fn route(state: web::Data<Config>, req: HttpRequest) -> impl Responder {
+    let ip = match req.peer_addr() {
+        Some(s) => s.ip().to_string(),
+        None => return HttpResponse::BadRequest()
+    };
+
+    if state.blacklist.contains(&ip) {
+        return HttpResponse::Forbidden()
+    }
+
+    let uri_string = req.uri().to_string();
+    let params: Vec<&str> = uri_string.split("/").collect();
+    let service = match params.get(1) {
+        Some(s) => s,
+        None => return HttpResponse::BadRequest()
+    };
+
+    println!("{service}");
+    for s in &state.services {
+        if s.mapping == *service {
+            return HttpResponse::Ok() // Actual implementation will come soon
+        }
+    }
+
+    HttpResponse::NotFound()
 }
 
 
@@ -24,7 +47,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
         .app_data(web::Data::new(config.clone()))
         .service(ping)
-        .service(web::resource("/").to(route))
+        .default_service(web::route().to(route))
     })
     .bind(address)?
     .run()
