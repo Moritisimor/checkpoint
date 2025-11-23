@@ -18,12 +18,7 @@ async fn route() -> impl Responder {
 async fn main() -> std::io::Result<()> {
     let config_as_string = std::fs::read_to_string("config.json")?;
     let config: Config = serde_json::from_str(&config_as_string)?;
-
-    let mut address = String::new();
-    address += config.host.as_str();
-    address += ":";
-    address += config.port.to_string().as_str();
-    println!("{address}");
+    let address = format!("{h}:{p}", h = config.host, p = config.port);
 
     HttpServer::new(move || {
         App::new()
