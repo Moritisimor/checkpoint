@@ -9,13 +9,13 @@ async fn ping() -> impl Responder {
     })
 }
 
-async fn route(state: web::Data<Config>, req: HttpRequest) -> impl Responder {
+async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
     let ip = match req.peer_addr() {
         Some(s) => s.ip().to_string(),
         None => return HttpResponse::BadRequest()
     };
 
-    if state.blacklist.contains(&ip) {
+    if config.blacklist.contains(&ip) {
         return HttpResponse::Forbidden()
     }
 
@@ -27,7 +27,7 @@ async fn route(state: web::Data<Config>, req: HttpRequest) -> impl Responder {
     };
 
     println!("{service}");
-    for s in &state.services {
+    for s in &config.services {
         if s.mapping == *service {
             return HttpResponse::Ok() // Actual implementation will come soon
         }
