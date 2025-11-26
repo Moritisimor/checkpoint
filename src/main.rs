@@ -1,7 +1,11 @@
 mod models;
 use crate::models::{Config, GenericResponse};
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
-use awc::{body::BoxBody, error::HeaderValue, http::{Method, header::HeaderName}};
+use awc::{
+    body::BoxBody,
+    error::HeaderValue,
+    http::{Method, header::HeaderName},
+};
 
 #[actix_web::get("/status")]
 async fn ping() -> impl Responder {
@@ -21,22 +25,23 @@ async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
     }
 
     let uri_string = req.uri().to_string();
-    let params: Vec<&str> = uri_string.split("/").collect();
-    let service = match params.get(1) {
-        Some(s) => s,
-        None => return HttpResponse::BadRequest().finish(),
-    };
-
-    let mut url = String::new();
-    for s in &config.services {
-        if s.mapping == *service {
-            url = s.url.clone();
-            break;
-        }
+    let mut params = Vec::new();
+    for p in uri_string.split("/") {
+        params.push(p.to_owned());
     }
 
+    let service = match params.get(1) {
+        Some(s) => s,
+        None => return HttpResponse::NotFound().finish()
+    };
+
+    let mut url = match config.services.get(service) {
+        Some(url) => url.clone(),
+        None => return HttpResponse::NotFound().finish(),
+    };
+
     if url.is_empty() {
-        return HttpResponse::NotFound().finish()
+        return HttpResponse::NotFound().finish();
     }
 
     for p in &params[2..] {
@@ -54,29 +59,30 @@ async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
         &Method::OPTIONS => client.options(url).send().await,
         &Method::PATCH => client.patch(url).send().await,
         &Method::PUT => client.put(url).send().await,
-        _ => return HttpResponse::MethodNotAllowed().finish()
+        _ => return HttpResponse::MethodNotAllowed().finish(),
     };
-    
+
     let mut res = match raw_response {
         Ok(res) => res,
-        Err(_) => return HttpResponse::BadGateway().finish()
+        Err(_) => return HttpResponse::BadGateway().finish(),
     };
 
     let body = match res.body().await {
         Ok(b) => b,
-        Err(_) => return HttpResponse::InternalServerError().finish()
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    let mut forwarded = HttpResponse::new(*&res.status())
-        .set_body(BoxBody::new(body));
+    let mut forwarded = HttpResponse::new(*&res.status()).set_body(BoxBody::new(body));
 
     for (k, v) in res.headers() {
         forwarded.headers_mut().append(k.clone(), v.clone());
     }
 
     if config.cors.contains(&ip) {
-        forwarded.headers_mut().append(HeaderName::from_static("Access-Control-Allow-Origin"), 
-            HeaderValue::from_static("*"));
+        forwarded.headers_mut().append(
+            HeaderName::from_static("Access-Control-Allow-Origin"),
+            HeaderValue::from_static("*"),
+        );
     }
 
     forwarded
