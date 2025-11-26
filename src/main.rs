@@ -1,7 +1,7 @@
 mod models;
 use crate::models::{Config, GenericResponse};
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
-use awc::{body::BoxBody, http::Method};
+use awc::{body::BoxBody, error::HeaderValue, http::{Method, header::HeaderName}};
 
 #[actix_web::get("/status")]
 async fn ping() -> impl Responder {
@@ -72,6 +72,11 @@ async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
 
     for (k, v) in res.headers() {
         forwarded.headers_mut().append(k.clone(), v.clone());
+    }
+
+    if config.cors.contains(&ip) {
+        forwarded.headers_mut().append(HeaderName::from_static("Access-Control-Allow-Origin"), 
+            HeaderValue::from_static("*"));
     }
 
     forwarded
