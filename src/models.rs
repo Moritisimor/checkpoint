@@ -12,6 +12,27 @@ pub struct Config {
     pub cors: Vec<String>,
 }
 
+impl Config {
+    pub fn tell_about_self(&self) {
+        println!("Host: {}", self.host);
+        println!("Port: {}", self.port);
+        println!("Services: ");
+        for (k, v) in &self.services {
+            println!("-> {} => {}", k, v)
+        }
+
+        println!("Blocked IPs: ");
+        for ip in &self.blacklist {
+            println!("-> {}", ip)
+        }
+
+        println!("CORS IPs: ");
+        for ip in &self.cors {
+            println!("-> {}", ip)
+        }
+    }
+}
+
 #[derive(Serialize)]
 pub struct GenericResponse {
     pub message: String,

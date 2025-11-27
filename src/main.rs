@@ -100,7 +100,7 @@ async fn main() -> std::io::Result<()> {
     let config_as_string = std::fs::read_to_string("config.json")?;
     let config: Config = serde_json::from_str(&config_as_string)?;
     let address = format!("{h}:{p}", h = config.host, p = config.port);
-    println!("Checkpoint listening on {address}");
+    config.tell_about_self();
 
     HttpServer::new(move || {
         App::new()
