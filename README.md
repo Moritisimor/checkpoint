@@ -13,7 +13,7 @@ Planned features include, but are not limited to...
 - Header Injection
 - Logging
 - Request-Rate limiting
-- Forwarding Bodies
+- Forwarding Headers
 
 # What features are there already?
 Currently, checkpoint can...

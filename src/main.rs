@@ -14,7 +14,7 @@ async fn ping() -> impl Responder {
     })
 }
 
-async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
+async fn route(config: web::Data<Config>, req: HttpRequest, b: web::Bytes) -> impl Responder {
     let ip = match req.peer_addr() {
         Some(s) => s.ip().to_string(),
         None => return HttpResponse::BadRequest().json(GenericResponse {
@@ -55,13 +55,13 @@ async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
 
     let client = awc::Client::new(); // This will have to change soon
     let raw_response = match req.method() {
-        &Method::GET => client.get(url).send().await,
-        &Method::POST => client.post(url).send().await,
-        &Method::DELETE => client.delete(url).send().await,
-        &Method::HEAD => client.head(url).send().await,
-        &Method::OPTIONS => client.options(url).send().await,
-        &Method::PATCH => client.patch(url).send().await,
-        &Method::PUT => client.put(url).send().await,
+        &Method::GET => client.get(url).send_body(b).await,
+        &Method::POST => client.post(url).send_body(b).await,
+        &Method::DELETE => client.delete(url).send_body(b).await,
+        &Method::HEAD => client.head(url).send_body(b).await,
+        &Method::OPTIONS => client.options(url).send_body(b).await,
+        &Method::PATCH => client.patch(url).send_body(b).await,
+        &Method::PUT => client.put(url).send_body(b).await,
         _ => return HttpResponse::MethodNotAllowed().finish(),
     };
 
