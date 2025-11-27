@@ -17,11 +17,15 @@ async fn ping() -> impl Responder {
 async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
     let ip = match req.peer_addr() {
         Some(s) => s.ip().to_string(),
-        None => return HttpResponse::BadRequest().finish(),
+        None => return HttpResponse::BadRequest().json(GenericResponse {
+            message: "Your IP could not be read.".into()
+        })
     };
 
     if config.blacklist.contains(&ip) {
-        return HttpResponse::Forbidden().finish();
+        return HttpResponse::Forbidden().json(GenericResponse {
+            message: "Not authorized.".into()
+        })
     }
 
     let uri_string = req.uri().to_string();
@@ -32,25 +36,24 @@ async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
 
     let service = match params.get(1) {
         Some(s) => s,
-        None => return HttpResponse::NotFound().finish()
+        None => return HttpResponse::NotFound().json(GenericResponse {
+            message: "This is an unknown service.".into()
+        })
     };
 
     let mut url = match config.services.get(service) {
         Some(url) => url.clone(),
-        None => return HttpResponse::NotFound().finish(),
+        None => return HttpResponse::NotFound().json(GenericResponse {
+            message: "This is an unknown service.".into()
+        }),
     };
-
-    if url.is_empty() {
-        return HttpResponse::NotFound().finish();
-    }
 
     for p in &params[2..] {
         url += "/";
         url += p
     }
 
-    println!("{url}");
-    let client = awc::Client::new();
+    let client = awc::Client::new(); // This will have to change soon
     let raw_response = match req.method() {
         &Method::GET => client.get(url).send().await,
         &Method::POST => client.post(url).send().await,
@@ -64,12 +67,16 @@ async fn route(config: web::Data<Config>, req: HttpRequest) -> impl Responder {
 
     let mut res = match raw_response {
         Ok(res) => res,
-        Err(_) => return HttpResponse::BadGateway().finish(),
+        Err(_) => return HttpResponse::BadGateway().json(GenericResponse {
+            message: "Service returned an invalid HTTP Response.".into()
+        }),
     };
 
     let body = match res.body().await {
         Ok(b) => b,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => return HttpResponse::InternalServerError().json(GenericResponse {
+            message: "Could not decode response body.".into()
+        }),
     };
 
     let mut forwarded = HttpResponse::new(*&res.status()).set_body(BoxBody::new(body));
