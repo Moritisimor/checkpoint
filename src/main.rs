@@ -1,4 +1,6 @@
 mod models;
+pub mod make_color;
+
 use crate::models::{Config, GenericResponse};
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use awc::{
@@ -73,7 +75,6 @@ async fn route(config: web::Data<Config>, req: HttpRequest, b: web::Bytes) -> im
     };
 
     let mut forwarded = HttpResponse::new(*&res.status()).set_body(BoxBody::new(body));
-
     for (k, v) in res.headers() {
         forwarded.headers_mut().append(k.clone(), v.clone());
     }
