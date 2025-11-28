@@ -97,8 +97,7 @@ async fn route(config: web::Data<Config>, req: HttpRequest, b: web::Bytes) -> im
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let config_as_string = std::fs::read_to_string("config.json")?;
-    let config: Config = serde_json::from_str(&config_as_string)?;
+    let config: Config = serde_json::from_str(&std::fs::read_to_string("config.json")?)?;
     let address = format!("{h}:{p}", h = config.host, p = config.port);
     config.tell_about_self();
 
