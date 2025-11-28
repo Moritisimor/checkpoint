@@ -4,7 +4,7 @@ use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use awc::{
     body::BoxBody,
     error::HeaderValue,
-    http::{Method, header::HeaderName},
+    http::header::HeaderName,
 };
 
 #[actix_web::get("/status")]
@@ -53,19 +53,12 @@ async fn route(config: web::Data<Config>, req: HttpRequest, b: web::Bytes) -> im
         url += p
     }
 
-    let client = awc::Client::new(); // This will have to change soon
-    let raw_response = match req.method() {
-        &Method::GET => client.get(url).send_body(b).await,
-        &Method::POST => client.post(url).send_body(b).await,
-        &Method::DELETE => client.delete(url).send_body(b).await,
-        &Method::HEAD => client.head(url).send_body(b).await,
-        &Method::OPTIONS => client.options(url).send_body(b).await,
-        &Method::PATCH => client.patch(url).send_body(b).await,
-        &Method::PUT => client.put(url).send_body(b).await,
-        _ => return HttpResponse::MethodNotAllowed().finish(),
-    };
+    let mut serv_req = awc::Client::new().request(req.method().clone(), url);
+    for (k, v) in req.headers() {
+        serv_req.headers_mut().append(k.clone(), v.clone());
+    }
 
-    let mut res = match raw_response {
+    let mut res = match serv_req.send_body(b).await {
         Ok(res) => res,
         Err(_) => return HttpResponse::BadGateway().json(GenericResponse {
             message: "Service returned an invalid HTTP Response.".into()
